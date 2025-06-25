@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Search } from 'lucide-react';
 
-const Dashboard = ({ indicators, onSelectScript }) => {
+const Dashboard = ({ indicators, onSelectScript, isLoading }) => {
   const [filter, setFilter] = useState('');
 
   const filteredIndicators = useMemo(() => {
@@ -30,8 +30,12 @@ const Dashboard = ({ indicators, onSelectScript }) => {
         </div>
       </div>
 
-      {/* Indicators Grid */}
-      {filteredIndicators.length > 0 ? (
+      {/* Indicators Grid / Loading */}
+      {isLoading ? (
+        <div className="flex justify-center items-center py-20">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        </div>
+      ) : filteredIndicators.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredIndicators.map((indicator, index) => (
             <div 

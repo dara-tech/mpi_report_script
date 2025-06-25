@@ -19,6 +19,7 @@ function App() {
   const [selectedScript, setSelectedScript] = useState(null);
   const [scriptContent, setScriptContent] = useState('');
   const [results, setResults] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [parameters, setParameters] = useState({});
   const [activeTab, setActiveTab] = useState(() => {
     return localStorage.getItem('sqlAnalystActiveTab') || 'dashboard';
@@ -112,6 +113,7 @@ function App() {
 
     useEffect(() => {
     const fetchIndicators = async () => {
+      setIsLoading(true);
       try {
         const response = await axios.get('/api/indicators?script=Indicator_ART_update.sql');
         if (response.data && Array.isArray(response.data.indicators)) {
@@ -120,6 +122,8 @@ function App() {
       } catch (error) {
         console.error('Failed to fetch dashboard indicators:', error);
         setToast({ show: true, message: 'Could not load dashboard indicators.', type: 'error' });
+      } finally {
+        setIsLoading(false);
       }
     };
     fetchIndicators();
@@ -187,6 +191,7 @@ function App() {
   const executeScript = async (script, customParams = {}) => {
     setLoading(true);
     setResults(null);
+    setIsLoading(true);
     try {
       const finalParams = { ...parameters, ...customParams };
       const response = await fetch('/api/execute-script', {
@@ -200,10 +205,36 @@ function App() {
         throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
       const data = await response.json();
-      setResults(data);
-      showToast('Script executed successfully', 'success');
-      if (settings.ui.autoNavigateToResults) {
-        setActiveTab('results');
+
+      if (data && Array.isArray(data.results)) {
+        const formattedResults = data.results.map(result => {
+          if (result && Array.isArray(result.data)) {
+            return {
+              ...result,
+              data: result.data.map(row => {
+                const newRow = { ...row };
+                Object.keys(newRow).forEach(key => {
+                  const value = newRow[key];
+                  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(value)) {
+                    newRow[key] = value.split('T')[0];
+                  }
+                });
+                return newRow;
+              })
+            };
+          }
+          return result;
+        });
+
+        setResults({ ...data, results: formattedResults });
+        showToast('Script executed successfully', 'success');
+        if (settings.ui.autoNavigateToResults) {
+          setActiveTab('results');
+        }
+      } else {
+        console.warn("API response format is not as expected. Setting raw data.", data);
+        setResults(data);
+        showToast('Script executed, but response format was unexpected.', 'warning');
       }
       setPage(1);
     } catch (error) {
@@ -363,8 +394,9 @@ function App() {
             connectionStatus={connectionStatus}
             scripts={scripts}
             setActiveTab={setActiveTab}
-            indicators={indicators}
-            onSelectScript={handleSelectScript}
+            indicators={indicators} 
+            onSelectScript={handleSelectScript} 
+            isLoading={isLoading} 
           />
         )}
 
