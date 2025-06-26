@@ -5,6 +5,9 @@ const fs = require('fs-extra');
 const path = require('path');
 const multer = require('multer');
 require('dotenv').config();
+const DataQualityMonitor = require('./dataQualityMonitor');
+const PerformanceMonitor = require('./performanceMonitor');
+const AnalyticsEngine = require('./analyticsEngine');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -194,12 +197,12 @@ app.get('/api/indicators', async (req, res) => {
 
       if (dataRows) {
         const indicators = dataRows.map(row => ({
-          name: row.Indicator,
-          total: row.TOTAL,
-          male_0_14: row.Male_0_14,
-          female_0_14: row.Female_0_14,
-          male_over_14: row.Male_over_14,
-          female_over_14: row.Female_over_14
+          name: row.Indicator || 'Unnamed Indicator',
+          total: row.TOTAL || 0,
+          male_0_14: row.Male_0_14 || 0,
+          female_0_14: row.Female_0_14 || 0,
+          male_over_14: row.Male_over_14 || 0,
+          female_over_14: row.Female_over_14 || 0
         }));
         res.json({ success: true, indicators });
       } else {
@@ -554,6 +557,79 @@ app.get('/api/import-status', (req, res) => {
     maxFileSize: '100MB',
     description: 'Upload SQL files to import database structure and data'
   });
+});
+
+// Data Quality API
+app.get('/api/data-quality', async (req, res) => {
+  try {
+    const dataQualityMonitor = new DataQualityMonitor(pool);
+    const report = await dataQualityMonitor.getQualityReport();
+    res.json({ success: true, report });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error generating data quality report', error: error.message });
+  }
+});
+
+// Performance API
+app.get('/api/performance', async (req, res) => {
+  try {
+    const performanceMonitor = new PerformanceMonitor(pool);
+    const report = await performanceMonitor.getPerformanceReport();
+    res.json({ success: true, report });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error generating performance report', error: error.message });
+  }
+});
+
+// Analytics API
+app.get('/api/analytics', async (req, res) => {
+  const { startDate, endDate } = req.query;
+  try {
+    if (!startDate || !endDate) {
+      return res.status(400).json({ success: false, message: 'startDate and endDate are required' });
+    }
+    const analyticsEngine = new AnalyticsEngine(pool);
+    const report = await analyticsEngine.analyzePatientTrends(startDate, endDate);
+    res.json({ success: true, report });
+  } catch (error) {
+    console.error('Analytics endpoint error:', error);
+    if (error && error.stack) console.error(error.stack);
+    res.status(500).json({ success: false, message: 'Error generating analytics report', error: error.message });
+  }
+});
+
+// Advanced Analytics: Risk Stratification
+app.get('/api/analytics/risk', async (req, res) => {
+  try {
+    const analyticsEngine = new AnalyticsEngine(pool);
+    const report = await analyticsEngine.analyzeRiskStratification();
+    res.json({ success: true, report });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error generating risk stratification report', error: error.message });
+  }
+});
+
+// Advanced Analytics: Retention Prediction
+app.get('/api/analytics/retention', async (req, res) => {
+  const { monthsAhead } = req.query;
+  try {
+    const analyticsEngine = new AnalyticsEngine(pool);
+    const report = await analyticsEngine.predictPatientRetention(Number(monthsAhead) || 6);
+    res.json({ success: true, report });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error generating retention prediction report', error: error.message });
+  }
+});
+
+// Advanced Analytics: Benchmarking
+app.get('/api/analytics/benchmark', async (req, res) => {
+  try {
+    const analyticsEngine = new AnalyticsEngine(pool);
+    const report = await analyticsEngine.benchmarkPerformance();
+    res.json({ success: true, report });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error generating benchmarking report', error: error.message });
+  }
 });
 
 // Serve React app for all other routes

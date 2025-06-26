@@ -9,6 +9,7 @@ import CodeEditor from './components/CodeEditor';
 import ResultsTable from './components/ResultsTable';
 import DebugPanel from './components/DebugPanel';
 import Dashboard from './components/Dashboard';
+import AdvancedDashboard from './pages/AdvancedDashboard';
 
 import ScriptExecutionPanel from './components/ScriptExecutionPanel';
 
@@ -34,14 +35,41 @@ function App() {
   const [indicators, setIndicators] = useState([]);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
+  // Helper function to normalize names for comparison
+  const normalizeForMatch = (name) => {
+    if (!name) return '';
+    return (
+      name
+        // Remove .sql extension
+        .replace(/\.sql$/i, '')
+        // Remove leading numbers, allowing for optional trailing dot and space/underscore separator
+        .replace(/^\d+(\.\d+)*\.?_?/, '')
+        // Remove special characters, keeping only letters, numbers, and whitespace
+        .replace(/[^\w\s]/g, '')
+        .trim()
+        // Standardize all space/underscore separators to a single underscore
+        .replace(/[\s_]+/g, '_')
+        .toLowerCase()
+    );
+  };
+
   const handleSelectScript = (indicatorName) => {
-    const scriptName = `${indicatorName}.sql`;
-    const scriptToSelect = scripts.find(s => s.name === scriptName);
+    const normalizedIndicatorName = normalizeForMatch(indicatorName);
+
+    const scriptToSelect = scripts.find(
+      (s) => normalizeForMatch(s.name) === normalizedIndicatorName
+    );
+
     if (scriptToSelect) {
       setSelectedScript(scriptToSelect);
       setActiveTab('execution');
     } else {
-      showToast(`Script "${scriptName}" not found.`, 'error');
+      console.error(
+        `Script not found for indicator "${indicatorName}".`
+      );
+      console.log(`Normalized indicator name: "${normalizedIndicatorName}"`);
+      console.log("Available normalized script names:", scripts.map(s => normalizeForMatch(s.name)));
+      showToast(`Script for indicator "${indicatorName}" not found.`, 'error');
     }
   };
   
@@ -111,23 +139,28 @@ function App() {
     localStorage.setItem('sqlAnalystSettings', JSON.stringify(settings));
   }, [settings]);
 
-    useEffect(() => {
     const fetchIndicators = async () => {
-      setIsLoading(true);
-      try {
-        const response = await axios.get('/api/indicators?script=Indicator_ART_update.sql');
-        if (response.data && Array.isArray(response.data.indicators)) {
-          setIndicators(response.data.indicators);
-        }
-      } catch (error) {
-        console.error('Failed to fetch dashboard indicators:', error);
-        setToast({ show: true, message: 'Could not load dashboard indicators.', type: 'error' });
-      } finally {
-        setIsLoading(false);
+    setIsLoading(true);
+    try {
+      const response = await axios.get('/api/indicators?script=Indicator_ART_update.sql');
+      if (response.data && Array.isArray(response.data.indicators)) {
+        setIndicators(response.data.indicators);
+      } else {
+        setIndicators([]);
       }
-    };
-    fetchIndicators();
-  }, []);
+    } catch (error) {
+      console.error('Failed to fetch dashboard indicators:', error);
+      showToast('Could not load dashboard indicators.', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'dashboard') {
+      fetchIndicators();
+    }
+  }, [activeTab]);
 
   const updateSettings = (section, key, value) => {
     setSettings(prev => ({
@@ -396,8 +429,13 @@ function App() {
             setActiveTab={setActiveTab}
             indicators={indicators} 
             onSelectScript={handleSelectScript} 
-            isLoading={isLoading} 
+            isLoading={isLoading}
+            onRefresh={fetchIndicators}
           />
+        )}
+
+        {activeTab === 'advanced-dashboard' && (
+          <AdvancedDashboard />
         )}
 
         {activeTab === 'scripts' && (
@@ -425,7 +463,7 @@ function App() {
               {filteredScripts.map(script => (
                 <div
                   key={script.path}
-                  className={`border border-gray-200 rounded-lg p-4 cursor-pointer hover:shadow-sm transition ${selectedScript?.path === script.path ? 'ring-2 ring-blue-400' : ''}`}
+                  className={`border border-gray-200 rounded-lg p-4 cursor-pointer transition ${selectedScript?.path === script.path ? 'ring-2 ring-blue-400' : ''}`}
                   onClick={() => {
                     setSelectedScript(script);
                     setActiveTab('execution');

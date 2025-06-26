@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { Search } from 'lucide-react';
+import { Search, RefreshCw } from 'lucide-react';
 
-const Dashboard = ({ indicators, onSelectScript, isLoading }) => {
+const Dashboard = ({ indicators, onSelectScript, isLoading, onRefresh }) => {
   const [filter, setFilter] = useState('');
 
   const filteredIndicators = useMemo(() => {
@@ -14,7 +14,17 @@ const Dashboard = ({ indicators, onSelectScript, isLoading }) => {
 
   return (
     <div className="p-6 sm:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
-      <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-200 mb-6">Dashboard</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-200">Dashboard</h1>
+        <button
+          onClick={onRefresh}
+          disabled={isLoading}
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-blue-400 disabled:cursor-not-allowed transition-all duration-200"
+        >
+          <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+          <span>{isLoading ? 'Refreshing...' : 'Refresh'}</span>
+        </button>
+      </div>
 
       {/* Filter Input */}
       <div className="mb-8 max-w-sm">
@@ -25,7 +35,7 @@ const Dashboard = ({ indicators, onSelectScript, isLoading }) => {
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             placeholder="Filter indicators by name..."
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow"
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
           />
         </div>
       </div>
@@ -40,7 +50,7 @@ const Dashboard = ({ indicators, onSelectScript, isLoading }) => {
           {filteredIndicators.map((indicator, index) => (
             <div 
               key={index} 
-              className="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 border border-gray-200 dark:border-gray-700 flex flex-col justify-between cursor-pointer"
+              className="bg-white dark:bg-gray-800 p-5 rounded-xl duration-300 border border-gray-200 dark:border-gray-700 flex flex-col justify-between cursor-pointer"
               onClick={() => onSelectScript(indicator.name)}
             >
               <div>

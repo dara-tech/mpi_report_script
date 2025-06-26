@@ -14,7 +14,7 @@ const ResultsTable = ({ data, pagedRows, page, totalPages, totalRows, onPrevPage
   const headers = Object.keys(rows[0]);
 
   return (
-    <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg overflow-hidden">
+    <div className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden">
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
           <thead className="bg-gray-50 dark:bg-gray-700">

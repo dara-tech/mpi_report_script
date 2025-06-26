@@ -19,7 +19,7 @@ SET @vl_suppression_threshold = 1000;
 -- Set codes for specific fields based on schema and user feedback
 SET @tld_regimen_formula = '3TC + DTG + TDF';
 SET @transfer_in_code = 1; 
-SET @tpt_drug_list = "'Isoniazid','3HP','6H'";
+SET @tpt_drug_list = "'Isoniazid','3HP','6H',3RH";
 
 
 -- ===================================================================
@@ -59,7 +59,7 @@ SELECT
 UNION ALL
 -- Query Indicator Enrolled 3
 SELECT
-    '3 . Newly Enrolled ' AS Indicator,
+    '3. Newly Enrolled' AS Indicator,
     IFNULL(COUNT(*), 0) AS TOTAL,
     IFNULL(SUM(CASE WHEN PatientList.type = 'Child' AND PatientList.Sex = 'Male' THEN 1 ELSE 0 END), 0) AS Male_0_14,
     IFNULL(SUM(CASE WHEN PatientList.type = 'Child' AND PatientList.Sex = 'Female' THEN 1 ELSE 0 END), 0) AS Female_0_14,
@@ -101,7 +101,7 @@ SELECT
 UNION ALL
 -- Query Indicator Initiated 5
 SELECT
-    '5. Newly Initiated ' AS Indicator,
+    '5. Newly Initiated' AS Indicator,
     IFNULL(COUNT(*), 0) AS TOTAL,
     IFNULL(SUM(CASE WHEN PatientList.type = 'Child' AND PatientList.Sex = 'Male' THEN 1 ELSE 0 END), 0) AS Male_0_14,
     IFNULL(SUM(CASE WHEN PatientList.type = 'Child' AND PatientList.Sex = 'Female' THEN 1 ELSE 0 END), 0) AS Female_0_14,
@@ -132,7 +132,7 @@ FROM (
 UNION ALL
 -- Indicator 5.1.1: New ART started: Same day
 SELECT
-    '5.1.1. New ART started: Same day' AS Indicator,
+    '5.1.1. New ART started Same day' AS Indicator,
     IFNULL(COUNT(*), 0) AS TOTAL,
     IFNULL(SUM(CASE WHEN PatientList.type = 'Child' AND PatientList.Sex = 'Male' THEN 1 ELSE 0 END), 0) AS Male_0_14,
     IFNULL(SUM(CASE WHEN PatientList.type = 'Child' AND PatientList.Sex = 'Female' THEN 1 ELSE 0 END), 0) AS Female_0_14,
@@ -150,7 +150,7 @@ UNION ALL
 
 -- Indicator 5.1.2: New ART started: 1-7 days
 SELECT
-    '5.1.2. New ART started: 1-7 days' AS Indicator,
+    '5.1.2. New ART started 1-7 days' AS Indicator,
     IFNULL(COUNT(*), 0) AS TOTAL,
     IFNULL(SUM(CASE WHEN PatientList.type = 'Child' AND PatientList.Sex = 'Male' THEN 1 ELSE 0 END), 0) AS Male_0_14,
     IFNULL(SUM(CASE WHEN PatientList.type = 'Child' AND PatientList.Sex = 'Female' THEN 1 ELSE 0 END), 0) AS Female_0_14,
@@ -168,7 +168,7 @@ UNION ALL
 
 -- Indicator 5.1.3: New ART started: >7 days
 SELECT
-    '5.1.3. New ART started: >7 days' AS Indicator,
+    '5.1.3. New ART started >7 days' AS Indicator,
     IFNULL(COUNT(*), 0) AS TOTAL,
     IFNULL(SUM(CASE WHEN PatientList.type = 'Child' AND PatientList.Sex = 'Male' THEN 1 ELSE 0 END), 0) AS Male_0_14,
     IFNULL(SUM(CASE WHEN PatientList.type = 'Child' AND PatientList.Sex = 'Female' THEN 1 ELSE 0 END), 0) AS Female_0_14,

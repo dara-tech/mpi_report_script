@@ -19,7 +19,7 @@ SET @vl_suppression_threshold = 1000;
 -- Set codes for specific fields based on schema and user feedback
 SET @tld_regimen_formula = '3TC + DTG + TDF';
 SET @transfer_in_code = 1; 
-SET @tpt_drug_list = "'Isoniazid','3HP','6H'";
+SET @tpt_drug_list = "'Isoniazid','3HP','6H','3RH'";
 
 
 -- ===================================================================
@@ -532,7 +532,7 @@ FROM (
     ) d ON v.Vid = d.Vid
     WHERE d.Status = 0 -- A status of 0 indicates a drug was started
       AND v.DatVisit BETWEEN @StartDate AND @EndDate -- And the start date must be within the reporting period
-      AND (d.DrugName LIKE '%Isoniazid%' OR d.DrugName LIKE '%6H%' OR d.DrugName LIKE '%3HP%')
+      AND (d.DrugName LIKE '%Isoniazid%' OR d.DrugName LIKE '%6H%' OR d.DrugName LIKE '%3HP%' OR d.DrugName LIKE '%3RH%')
     UNION ALL
     -- Children starting specific TPT drugs in the quarter
     SELECT 'Child' as type, IF(p.Sex=0, 'Female', 'Male') as Sex
@@ -546,7 +546,7 @@ FROM (
     ) d ON v.Vid = d.Vid
     WHERE d.Status = 0 -- A status of 0 indicates a drug was started
       AND v.DatVisit BETWEEN @StartDate AND @EndDate -- And the start date must be within the reporting period
-      AND (d.DrugName LIKE '%Isoniazid%' OR d.DrugName LIKE '%6H%' OR d.DrugName LIKE '%3HP%')
+      AND (d.DrugName LIKE '%Isoniazid%' OR d.DrugName LIKE '%6H%' OR d.DrugName LIKE '%3HP%' OR d.DrugName LIKE '%3RH%')
 ) as PatientList
 
 UNION ALL
