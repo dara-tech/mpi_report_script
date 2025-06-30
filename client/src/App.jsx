@@ -9,7 +9,7 @@ import CodeEditor from './components/CodeEditor';
 import ResultsTable from './components/ResultsTable';
 import DebugPanel from './components/DebugPanel';
 import Dashboard from './components/Dashboard';
-import AdvancedDashboard from './pages/AdvancedDashboard';
+import AdvancedDashboard from './components/AdvancedDashboard';
 
 import ScriptExecutionPanel from './components/ScriptExecutionPanel';
 
@@ -157,7 +157,7 @@ function App() {
   };
 
   useEffect(() => {
-    if (activeTab === 'dashboard') {
+    if (activeTab === 'dashboard' || activeTab === 'advanced-dashboard') {
       fetchIndicators();
     }
   }, [activeTab]);
@@ -433,9 +433,8 @@ function App() {
             onRefresh={fetchIndicators}
           />
         )}
-
         {activeTab === 'advanced-dashboard' && (
-          <AdvancedDashboard />
+          <AdvancedDashboard indicators={indicators} isLoading={isLoading} />
         )}
 
         {activeTab === 'scripts' && (

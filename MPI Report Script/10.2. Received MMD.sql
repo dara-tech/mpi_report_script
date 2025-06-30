@@ -1,65 +1,82 @@
 -- ===================================================================
 -- SCRIPT SETUP
 -- ===================================================================
--- Set the reporting period dates from the PDF report
+-- Set the reporting period dates
 SET @StartDate = '2025-01-01';
 SET @EndDate = '2025-03-31';
 
--- Set the patient status codes based on the data dictionary
+-- Set the patient status codes
 SET @dead_code = 1;
 SET @transfer_out_code = 3;
 
--- Set the MMD quantity threshold
-SET @mmd_drug_quantity = 60;
-
 -- ===================================================================
--- SCRIPT BODY
+-- DEBUGGING SCRIPT BODY (Using ARTnum from Visit)
 -- ===================================================================
 SELECT
-    -- ROW_NUMBER() OVER (ORDER BY ActivePatients.ClinicID, Last_Visit_Date.Last_MMD_Date) AS No,
     ActivePatients.ClinicID,
+    MMD_Visits.Artnum, -- Using ARTnum from the MMD_Visits subquery
     ActivePatients.type,
     ActivePatients.Sex,
-    MMD_Details.MMD_Dispensing_Date,
-    GROUP_CONCAT(MMD_Details.MMD_Drug ORDER BY MMD_Details.MMD_Drug SEPARATOR ' + ') AS MMD_Formula,
-    GROUP_CONCAT(MMD_Details.MMD_Quantity_Dispensed ORDER BY MMD_Details.MMD_Drug) AS MMD_Quantities,
-    ROUND(MIN(MMD_Details.MMD_Quantity_Dispensed) / 30, 1) AS Estimated_Months_Supply
+    MMD_Visits.DispensingDate,
+    MMD_Visits.RegimenFormula,
+    MMD_Visits.Quantities,
+    MMD_Visits.MaxQuantity,
+    ROUND(MMD_Visits.MaxQuantity / 30, 1) AS Estimated_Months_Supply 
 FROM
     (
         -- Get the full list of all active patients
-        SELECT main.ClinicID, 'Adult' as type, IF(main.Sex=0, 'Female', 'Male') as Sex
-        FROM tblaimain main
+        SELECT main.ClinicID, 'Adult' as type, IF(main.Sex=0, 'Female', 'Male') as Sex FROM tblaimain main
         JOIN ( SELECT lv.ClinicID, v.DaApp FROM (SELECT ClinicID, MAX(DatVisit) AS LastVisitDate FROM tblavmain WHERE DatVisit <= @EndDate GROUP BY ClinicID) lv JOIN tblavmain v ON lv.ClinicID = v.ClinicID AND lv.LastVisitDate = v.DatVisit ) pla ON main.ClinicID = pla.ClinicID
         WHERE NOT EXISTS (SELECT 1 FROM tblavpatientstatus s WHERE s.ClinicID = main.ClinicID AND s.Da <= @EndDate AND s.Status IN (@dead_code, @transfer_out_code)) AND DATEDIFF(@EndDate, pla.DaApp) < 28
         UNION ALL
-        SELECT main.ClinicID, 'Child' as type, IF(main.Sex=0, 'Female', 'Male') as Sex
-        FROM tblcimain main
+        SELECT main.ClinicID, 'Child' as type, IF(main.Sex=0, 'Female', 'Male') as Sex FROM tblcimain main
         JOIN ( SELECT lv.ClinicID, v.DaApp FROM (SELECT ClinicID, MAX(DatVisit) AS LastVisitDate FROM tblcvmain WHERE DatVisit <= @EndDate GROUP BY ClinicID) lv JOIN tblcvmain v ON lv.ClinicID = v.ClinicID AND lv.LastVisitDate = v.DatVisit ) pla ON main.ClinicID = pla.ClinicID
         WHERE NOT EXISTS (SELECT 1 FROM tblcvpatientstatus s WHERE s.ClinicID = main.ClinicID AND s.Da <= @EndDate AND s.Status IN (@dead_code, @transfer_out_code)) AND DATEDIFF(@EndDate, pla.DaApp) < 28
     ) AS ActivePatients
 JOIN
     (
-        -- This subquery now finds the details for EACH MMD dispensing event
-        SELECT v.ClinicID, v.DatVisit AS MMD_Dispensing_Date, d.DrugName AS MMD_Drug, d.Quantity AS MMD_Quantity_Dispensed
-        FROM tblavmain v JOIN tblavarvdrug d ON v.Vid = d.Vid
-        -- The issue is here: DTG is likely not being recorded with a quantity > 60
-        WHERE v.DatVisit BETWEEN @StartDate AND @EndDate AND d.Quantity > @mmd_drug_quantity
-        UNION ALL
-        SELECT v.ClinicID, v.DatVisit, d.DrugName, d.Quantity
-        FROM tblcvmain v JOIN tblcvarvdrug d ON v.Vid = d.Vid
-        -- The issue is here: DTG is likely not being recorded with a quantity > 60
-        WHERE v.DatVisit BETWEEN @StartDate AND @EndDate AND d.Quantity > @mmd_drug_quantity
-    ) AS MMD_Details ON ActivePatients.ClinicID = MMD_Details.ClinicID
-JOIN
-    (
-        -- This subquery finds the MOST RECENT (MAX) visit date for each patient to ensure unique IDs
-        SELECT ClinicID, MAX(DatVisit) AS Last_MMD_Date
+        -- This subquery now gets details for only the MOST RECENT visit in the quarter
+        SELECT
+            VisitDetails.ClinicID,
+            VisitDetails.Artnum, -- Artnum from visit table is now included
+            VisitDetails.DispensingDate,
+            VisitDetails.RegimenFormula,
+            VisitDetails.Quantities,
+            VisitDetails.MaxQuantity
         FROM (
-            SELECT v.ClinicID, v.DatVisit FROM tblavmain v JOIN tblavarvdrug d ON v.Vid = d.Vid WHERE v.DatVisit BETWEEN @StartDate AND @EndDate AND d.Quantity > @mmd_drug_quantity
+            -- Get details for ALL visits in the period, including MAX quantity
+            SELECT 
+                v.ClinicID,
+                v.ARTnum as Artnum, -- Selecting ARTnum from the visit table
+                v.DatVisit as DispensingDate,
+                GROUP_CONCAT(d.DrugName ORDER BY d.DrugName SEPARATOR ' + ') as RegimenFormula,
+                GROUP_CONCAT(d.Quantity ORDER BY d.DrugName) as Quantities,
+                MAX(d.Quantity) as MaxQuantity
+            FROM tblavmain v JOIN tblavarvdrug d ON v.Vid = d.Vid
+            WHERE v.DatVisit BETWEEN @StartDate AND @EndDate
+            GROUP BY v.ClinicID, v.ARTnum, v.DatVisit
             UNION ALL
-            SELECT v.ClinicID, v.DatVisit FROM tblcvmain v JOIN tblcvarvdrug d ON v.Vid = d.Vid WHERE v.DatVisit BETWEEN @StartDate AND @EndDate AND d.Quantity > @mmd_drug_quantity
-        ) AS All_MMD_Visits
-        GROUP BY ClinicID
-    ) AS Last_Visit_Date ON MMD_Details.ClinicID = Last_Visit_Date.ClinicID AND MMD_Details.MMD_Dispensing_Date = Last_Visit_Date.Last_MMD_Date
-GROUP BY
-    ActivePatients.ClinicID, ActivePatients.type, ActivePatients.Sex, MMD_Details.MMD_Dispensing_Date;
+            SELECT 
+                v.ClinicID,
+                v.ARTnum as Artnum, -- Selecting ARTnum from the visit table
+                v.DatVisit,
+                GROUP_CONCAT(d.DrugName ORDER BY d.DrugName SEPARATOR ' + '),
+                GROUP_CONCAT(d.Quantity ORDER BY d.DrugName),
+                MAX(d.Quantity)
+            FROM tblcvmain v JOIN tblcvarvdrug d ON v.Vid = d.Vid
+            WHERE v.DatVisit BETWEEN @StartDate AND @EndDate
+            GROUP BY v.ClinicID, v.ARTnum, v.DatVisit
+        ) AS VisitDetails
+        -- Join to a subquery that finds the MAX visit date to ensure uniqueness
+        INNER JOIN (
+            SELECT ClinicID, MAX(DatVisit) as MaxVisitDate
+            FROM (
+                SELECT ClinicID, DatVisit FROM tblavmain WHERE DatVisit BETWEEN @StartDate AND @EndDate
+                UNION ALL
+                SELECT ClinicID, DatVisit FROM tblcvmain WHERE DatVisit BETWEEN @StartDate AND @EndDate
+            ) as AllVisits
+            GROUP BY ClinicID
+        ) as LatestVisit ON VisitDetails.ClinicID = LatestVisit.ClinicID AND VisitDetails.DispensingDate = LatestVisit.MaxVisitDate
+
+    ) AS MMD_Visits ON ActivePatients.ClinicID = MMD_Visits.ClinicID
+ORDER BY ActivePatients.ClinicID, MMD_Visits.DispensingDate;

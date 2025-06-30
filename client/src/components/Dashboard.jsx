@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Search, RefreshCw } from 'lucide-react';
+import SkeletonCard from './SkeletonCard';
 
 const Dashboard = ({ indicators, onSelectScript, isLoading, onRefresh }) => {
   const [filter, setFilter] = useState('');
@@ -42,8 +43,10 @@ const Dashboard = ({ indicators, onSelectScript, isLoading, onRefresh }) => {
 
       {/* Indicators Grid / Loading */}
       {isLoading ? (
-        <div className="flex justify-center items-center py-20">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {Array.from({ length: 8 }).map((_, index) => (
+            <SkeletonCard key={index} />
+          ))}
         </div>
       ) : filteredIndicators.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">

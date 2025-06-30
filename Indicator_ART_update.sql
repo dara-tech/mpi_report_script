@@ -337,12 +337,7 @@ FROM (
     JOIN tblaart art ON i.ClinicID = art.ClinicID
     JOIN (
         SELECT lv.ClinicID, v.DaApp 
-        FROM (
-            SELECT ClinicID, MAX(DatVisit) AS LastVisitDate 
-            FROM tblavmain 
-            WHERE DatVisit <= @EndDate 
-            GROUP BY ClinicID
-        ) lv
+        FROM (SELECT ClinicID, MAX(DatVisit) AS LastVisitDate FROM tblavmain WHERE DatVisit <= @EndDate GROUP BY ClinicID) lv
         JOIN tblavmain v ON lv.ClinicID = v.ClinicID AND lv.LastVisitDate = v.DatVisit
     ) pla ON i.ClinicID = pla.ClinicID
     JOIN (
@@ -358,8 +353,8 @@ FROM (
         ) AS max_vl ON t.ClinicID = max_vl.ClinicID AND t.Dat = max_vl.MaxDate
     ) AS vl ON i.ClinicID = vl.ClinicID
     WHERE
-        -- Condition 1: Must be on ART for at least 12 months
-        TIMESTAMPDIFF(MONTH, art.DaArt, @EndDate) >= 12
+        -- **THE FIX IS HERE**: Time on ART is now correctly set to >= 6 months
+        TIMESTAMPDIFF(MONTH, art.DaArt, @EndDate) >= 6
         -- Condition 2: Must be virally suppressed
         AND vl.LastVLResult < @vl_suppression_threshold
         -- Condition 3: They are not more than 28 days late for their appointment
@@ -377,12 +372,7 @@ FROM (
     JOIN tblcart art ON i.ClinicID = art.ClinicID
     JOIN (
         SELECT lv.ClinicID, v.DaApp 
-        FROM (
-            SELECT ClinicID, MAX(DatVisit) AS LastVisitDate 
-            FROM tblcvmain 
-            WHERE DatVisit <= @EndDate 
-            GROUP BY ClinicID
-        ) lv
+        FROM (SELECT ClinicID, MAX(DatVisit) AS LastVisitDate FROM tblcvmain WHERE DatVisit <= @EndDate GROUP BY ClinicID) lv
         JOIN tblcvmain v ON lv.ClinicID = v.ClinicID AND lv.LastVisitDate = v.DatVisit
     ) pla ON i.ClinicID = pla.ClinicID
     JOIN (
@@ -398,8 +388,8 @@ FROM (
         ) AS max_vl ON t.ClinicID = max_vl.ClinicID AND t.Dat = max_vl.MaxDate
     ) AS vl ON i.ClinicID = vl.ClinicID
     WHERE
-        -- Condition 1: Must be on ART for at least 12 months
-        TIMESTAMPDIFF(MONTH, art.DaArt, @EndDate) >= 12
+        -- **THE FIX IS HERE**: Time on ART is now correctly set to >= 6 months
+        TIMESTAMPDIFF(MONTH, art.DaArt, @EndDate) >= 6
         -- Condition 2: Must be virally suppressed
         AND vl.LastVLResult < @vl_suppression_threshold
         -- Condition 3: They are not more than 28 days late for their appointment
