@@ -1,5 +1,5 @@
 import React from 'react';
-import { Database, FileText, Play, BarChart2, BarChartBig, Settings, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Database, FileText, Play, BarChart2, BarChartBig, Settings, ChevronLeft, ChevronRight, Upload } from 'lucide-react';
 
 const Sidebar = ({ activeTab, setActiveTab, connectionStatus, isCollapsed, toggleSidebar }) => {
   const navItems = [
@@ -8,6 +8,7 @@ const Sidebar = ({ activeTab, setActiveTab, connectionStatus, isCollapsed, toggl
     { id: 'execution', label: 'Execution', icon: Play },
     { id: 'results', label: 'Results', icon: BarChart2 },
     { id: 'settings', label: 'Settings', icon: Settings },
+    { id: 'upload', label: 'Upload', icon: Upload },
     { id: 'advanced-dashboard', label: 'Advanced Dashboard', icon: BarChartBig },
   ];
 
@@ -24,12 +25,11 @@ const Sidebar = ({ activeTab, setActiveTab, connectionStatus, isCollapsed, toggl
             key={item.id}
             onClick={() => setActiveTab(item.id)}
             title={isCollapsed ? item.label : ''}
-            className={`flex items-center w-full py-3 text-left text-sm font-medium rounded relative group transition-all duration-200 ${isCollapsed ? 'justify-center px-2' : 'px-6'}
+            className={`relative flex items-center w-full py-2 text-sm font-medium transition-all duration-200 
+              ${isCollapsed ? 'justify-center px-2' : 'px-4'}
               ${activeTab === item.id
-                ? 'text-cyan-500 dark:text-cyan-300 bg-gradient-to-r from-cyan-200/60 via-blue-100/40 to-transparent dark:from-cyan-900/60 dark:via-blue-900/30 dark:to-transparent border-l-4 rounded-r-lg border-cyan-400 dark:border-cyan-500 scale-105 z-10 backdrop-blur-[2px] '
-                : 'text-gray-600 dark:text-gray-400 hover:bg-cyan-50/40 dark:hover:bg-cyan-800/30 hover:scale-102'}
-            `}
-            style={activeTab === item.id ? {} : {}}
+                ? 'text-cyan-600 dark:text-cyan-400 bg-cyan-100/50 dark:bg-cyan-900/30'
+                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100/50 dark:hover:bg-gray-800/30 hover:text-cyan-600 dark:hover:text-cyan-400'}`}
           >
             <div className={`p-2 rounded-lg ${activeTab === item.id ? 'bg-cyan-300/40 dark:bg-cyan-800/60' : ''}`}>
               <item.icon size={20} className="flex-shrink-0" />

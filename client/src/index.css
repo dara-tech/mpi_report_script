@@ -1,6 +1,18 @@
 @import "tw-animate-css";
 @import "tailwindcss";
 
+@layer utilities {
+  .tactical-grid-bg {
+    background-image: 
+      linear-gradient(rgba(0, 255, 135, 0.07) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 255, 135, 0.07) 1px, transparent 1px);
+    background-size: 2rem 2rem;
+  }
+  .form-input-technical {
+      @apply w-full bg-transparent border-0 border-b-2 border-green-500/30 py-2 px-1 text-green-300 placeholder-green-700/80 font-mono;
+      @apply focus:outline-none focus:ring-0 focus:border-green-400 transition-colors duration-300;
+  }
+}
 /* PrismJS theme for syntax highlighting (based on a dark theme) */
 code[class*="language-"],
 pre[class*="language-"] {
@@ -401,6 +413,12 @@ body {
 .execution-panel {
   max-width: 1200px;
   margin: 0 auto;
+}
+
+@layer components {
+  .form-input {
+    @apply mt-1 block w-full px-3 py-2 bg-white/5 border border-white/20 rounded-lg placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-white transition-colors;
+  }
 }
 
 .execution-header {
@@ -945,6 +963,30 @@ code {
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+}
+/* For Webkit browsers like Chrome, Safari */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* For Firefox */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
 }
 
 @layer base {

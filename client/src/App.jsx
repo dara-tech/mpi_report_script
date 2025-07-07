@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { Database, Play, Eye, FileText, CheckCircle, XCircle, AlertCircle, Settings, Upload, Sun, Moon, RefreshCw } from 'lucide-react';
 import Sidebar from './components/Sidebar';
@@ -10,6 +10,7 @@ import ResultsTable from './components/ResultsTable';
 import DebugPanel from './components/DebugPanel';
 import Dashboard from './components/Dashboard';
 import AdvancedDashboard from './components/AdvancedDashboard';
+import FileUpload from './components/FileUpload';
 
 import ScriptExecutionPanel from './components/ScriptExecutionPanel';
 
@@ -392,7 +393,7 @@ function App() {
   const mainData = results?.results && results.results.filter(r => r.type === 'select' && r.data && r.data.length > 0);
 
   const rowsPerPage = settings.ui.rowsPerPage;
-  const currentData = mainData && mainData.length > 0 ? mainData[0].data : [];
+  const currentData = useMemo(() => (mainData && mainData.length > 0 ? mainData[0].data : []), [mainData]);
   const pagedRows = currentData.slice((page - 1) * rowsPerPage, page * rowsPerPage);
   const totalRows = currentData.length;
   const totalPages = Math.ceil(totalRows / rowsPerPage);
@@ -411,6 +412,7 @@ function App() {
         toggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
       />
       <div className="flex-1 flex flex-col overflow-hidden">
+              {activeTab === 'upload' && <FileUpload showToast={showToast} onUploadSuccess={loadScripts} />} 
         <header className="flex items-center justify-between px-8 py-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 sticky top-0 z-10">
           <h1 className="text-2xl font-semibold capitalize">{activeTab}</h1>
           <div className="flex items-center gap-4">
@@ -553,21 +555,7 @@ function App() {
                     >Export Data</button>
                   </div>
                 </div>
-                {mainData && mainData.length > 0 ? (
-                  <ResultsTable
-                    data={currentData}
-                    pagedRows={pagedRows}
-                    page={page}
-                    totalPages={totalPages}
-                    totalRows={totalRows}
-                    onPrevPage={() => setPage(p => Math.max(1, p - 1))}
-                    onNextPage={() => setPage(p => Math.min(totalPages, p + 1))}
-                    onExport={() => exportData(currentData, exportFormat)}
-                    loading={loading}
-                  />
-                ) : (
-                  <div className="text-center text-gray-400 py-12">No data to display.</div>
-                )}
+                <ResultsTable data={loading ? null : currentData} />
                 {results.error && (
                   <div className="mt-4 text-red-500 text-sm">{results.error}</div>
                 )}

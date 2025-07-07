@@ -18,10 +18,24 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, '../client/dist')));
 
 // Configure multer for file uploads
+const userScriptsDir = path.join(__dirname, '../User Scripts');
+fs.ensureDirSync(userScriptsDir);
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, userScriptsDir);
+  },
+  filename: (req, file, cb) => {
+    // Basic sanitization to prevent path traversal
+    const safeFilename = path.basename(file.originalname).replace(/[^a-zA-Z0-9._-]/g, '');
+    cb(null, safeFilename);
+  }
+});
+
 const upload = multer({
-  dest: 'uploads/',
+  storage: storage,
   limits: {
-    fileSize: 100 * 1024 * 1024 // 100MB limit
+    fileSize: 350 * 1024 * 1024 // 350MB limit
   },
   fileFilter: (req, file, cb) => {
     if (file.mimetype === 'text/plain' || 
@@ -40,7 +54,7 @@ const pool = mysql.createPool({
   port: process.env.DB_PORT || 3306,
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'test',
+  database: process.env.DB_NAME || 'preart',
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
@@ -163,11 +177,72 @@ app.get('/api/scripts', async (req, res) => {
         }
       }
     }
+
+    // Read User Scripts
+    const userScriptsDir = path.join(__dirname, '../User Scripts');
+    if (await fs.pathExists(userScriptsDir)) {
+      const userFiles = await fs.readdir(userScriptsDir);
+      for (const file of userFiles) {
+        if (file.endsWith('.sql') || file.endsWith('.txt')) {
+          scripts.push({
+            name: file,
+            type: 'user',
+            path: path.join('User Scripts', file)
+          });
+        }
+      }
+    }
     
     res.json({ success: true, scripts });
   } catch (error) {
     console.error('Error reading scripts:', error);
     res.status(500).json({ success: false, message: 'Error reading scripts', error: error.message });
+  }
+});
+
+// Upload a new SQL script
+app.post('/api/upload-script', upload.single('sqlfile'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ success: false, message: 'No file uploaded.' });
+  }
+  res.json({ 
+    success: true, 
+    message: `File '${req.file.filename}' uploaded successfully.`,
+    filePath: path.join('User Scripts', req.file.filename)
+  });
+});
+
+// Execute an uploaded SQL script
+app.post('/api/execute-uploaded-script', async (req, res) => {
+  const { scriptPath } = req.body;
+
+  if (!scriptPath) {
+    return res.status(400).json({ success: false, message: 'Script path is required' });
+  }
+
+  // Security check: ensure the path is within the 'User Scripts' directory
+  const userScriptsDir = path.join(__dirname, '../User Scripts');
+  const fullPath = path.join(__dirname, '..', scriptPath);
+  
+  if (!fullPath.startsWith(userScriptsDir)) {
+      return res.status(403).json({ success: false, message: 'Access to the script is forbidden.' });
+  }
+
+  try {
+    const scriptContent = await fs.readFile(fullPath, 'utf8');
+    const connection = await pool.getConnection();
+    try {
+      // Set a larger packet size for this session to handle large dumps
+      await connection.query(`SET GLOBAL max_allowed_packet = ${500 * 1024 * 1024}`);
+      // The 'multipleStatements: true' in the pool config allows this to work for dumps
+      await connection.query(scriptContent);
+      res.json({ success: true, message: `Script '${path.basename(scriptPath)}' executed successfully.` });
+    } finally {
+      connection.release();
+    }
+  } catch (error) {
+    console.error(`Error executing uploaded script ${scriptPath}:`, error);
+    res.status(500).json({ success: false, message: `Error executing script: ${error.message}` });
   }
 });
 

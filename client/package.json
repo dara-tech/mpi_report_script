@@ -10,11 +10,16 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@headlessui/react": "^2.2.4",
     "@heroicons/react": "^2.0.18",
     "@tailwindcss/postcss": "^4.1.10",
+    "@tanstack/match-sorter-utils": "^8.19.4",
+    "@tanstack/react-table": "^8.21.3",
+    "@tanstack/react-virtual": "^3.13.12",
     "axios": "^1.6.0",
     "bootstrap": "^5.3.7",
     "date-fns": "^4.1.0",
+    "framer-motion": "^12.20.5",
     "lucide-react": "^0.294.0",
     "prismjs": "^1.29.0",
     "react": "^18.2.0",
@@ -36,6 +41,7 @@
     "eslint-plugin-react-refresh": "^0.4.4",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.10",
+    "tailwindcss-animate": "^1.0.7",
     "tw-animate-css": "^1.3.4",
     "vite": "^4.5.0"
   }
