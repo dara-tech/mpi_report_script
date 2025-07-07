@@ -76,40 +76,102 @@ function App() {
   
   // Import state
 
+function getDynamicDateParameters() {
+  const today = new Date();
+  const currentQuarter = Math.floor(today.getMonth() / 3); // 0-indexed quarter
+  const currentYear = today.getFullYear();
+
+  // Calculate the most recently completed quarter
+  let reportQuarter;
+  let reportYear;
+
+  if (currentQuarter === 0) { // We are in Q1, report on Q4 of last year
+    reportQuarter = 3; // 0-indexed Q4
+    reportYear = currentYear - 1;
+  } else { // Report on the previous quarter of this year
+    reportQuarter = currentQuarter - 1;
+    reportYear = currentYear;
+  }
+
+  const startDate = new Date(reportYear, reportQuarter * 3, 1);
+  const endDate = new Date(reportYear, reportQuarter * 3 + 3, 0);
+
+  // Calculate the quarter before that
+  let prevReportQuarter;
+  let prevReportYear;
+
+  if (reportQuarter === 0) {
+    prevReportQuarter = 3;
+    prevReportYear = reportYear - 1;
+  } else {
+    prevReportQuarter = reportQuarter - 1;
+    prevReportYear = reportYear;
+  }
+
+  const previousStartDate = new Date(prevReportYear, prevReportQuarter * 3, 1);
+  const previousEndDate = new Date(prevReportYear, prevReportQuarter * 3 + 3, 0);
+
+  const formatDate = (date) => date.toISOString().split('T')[0];
+
+  return {
+    startDate: formatDate(startDate),
+    endDate: formatDate(endDate),
+    previousStartDate: formatDate(previousStartDate),
+    previousEndDate: formatDate(previousEndDate),
+    quarter: `Q${reportQuarter + 1}`,
+    year: reportYear.toString(),
+  };
+}
   
-  const [settings, setSettings] = useState({
-    database: {
-      host: '127.0.0.1',
-      port: '3306',
-      database: 'preart',
-      username: '',
-      password: ''
-    },
-    defaults: {
-      startDate: '2025-01-01',
-      endDate: '2025-03-31',
-      previousStartDate: '2024-10-01',
-      previousEndDate: '2024-12-31',
-      mmdDrugQuantity: '60',
-      vlSuppressionThreshold: '1000',
-      quarter: 'Q1',
-      year: '2025',
-      deadCode: '1',
-      transferOutCode: '3',
-      transferInCode: '1',
-      tldRegimenFormula: '3TC + DTG + TDF',
-      tptDrugList: "'Isoniazid','3HP','6H'"
-    },
-    export: {
-      defaultFormat: 'csv',
-      includeHeaders: true,
-      autoExport: false
-    },
-    ui: {
-      theme: 'light',
-      rowsPerPage: 20,
-      autoNavigateToResults: true
+  const [settings, setSettings] = useState(() => {
+    const dynamicParams = getDynamicDateParameters();
+    const defaultSettings = {
+      database: {
+        host: '127.0.0.1',
+        port: '3306',
+        database: 'preart',
+        username: '',
+        password: ''
+      },
+      defaults: {
+        ...dynamicParams,
+        mmdDrugQuantity: '60',
+        vlSuppressionThreshold: '1000',
+        deadCode: '1',
+        transferOutCode: '3',
+        transferInCode: '1',
+        tldRegimenFormula: '3TC + DTG + TDF',
+        tptDrugList: "'Isoniazid','3HP','6H'"
+      },
+      export: {
+        defaultFormat: 'csv',
+        includeHeaders: true,
+        autoExport: false
+      },
+      ui: {
+        theme: 'light',
+        rowsPerPage: 20,
+        autoNavigateToResults: true
+      }
+    };
+
+    const savedSettings = localStorage.getItem('sqlAnalystSettings');
+    if (savedSettings) {
+      try {
+        const parsed = JSON.parse(savedSettings);
+        // Merge defaults, ensuring dynamic dates are always fresh
+        parsed.defaults = {
+          ...defaultSettings.defaults,
+          ...parsed.defaults,
+          ...dynamicParams,
+        };
+        return parsed;
+      } catch (e) {
+        console.error('Error parsing saved settings:', e);
+        return defaultSettings;
+      }
     }
+    return defaultSettings;
   });
 
   // Save activeTab to localStorage whenever it changes
@@ -122,18 +184,6 @@ function App() {
     setToast({ message, type });
     setTimeout(() => setToast(null), duration);
   };
-
-  // Load settings from localStorage on mount
-  useEffect(() => {
-    const savedSettings = localStorage.getItem('sqlAnalystSettings');
-    if (savedSettings) {
-      try {
-        setSettings(JSON.parse(savedSettings));
-      } catch (error) {
-        console.error('Error loading settings:', error);
-      }
-    }
-  }, []);
 
   // Save settings to localStorage whenever settings change
   useEffect(() => {
